@@ -16,7 +16,7 @@ class ImageUtil {
 
     fun getImageFromFilePath(filePath: String): Bitmap? {
         val bitmap = BitmapFactory.decodeFile(filePath) ?: return null
-        var rotatedBitmap: Bitmap? = null
+        val rotatedBitmap: Bitmap
         try {
             val exif = ExifInterface(filePath)
             val orientation = exif.getAttributeInt(
@@ -28,13 +28,31 @@ class ImageUtil {
                 ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
                 ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
                 ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1.0f, 1.0f)
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1.0f, -1.0f)
+                ExifInterface.ORIENTATION_TRANSPOSE -> {
+                    matrix.postRotate(90f)
+                    matrix.preScale(-1.0f, 1.0f)
+                }
+                ExifInterface.ORIENTATION_TRANSVERSE -> {
+                    matrix.postRotate(270f)
+                    matrix.preScale(-1.0f, 1.0f)
+                }
+                else -> return bitmap
             }
             rotatedBitmap = Bitmap.createBitmap(
                 bitmap, 0, 0, bitmap.width,
                 bitmap.height, matrix, true
             )
+            if (rotatedBitmap != bitmap) {
+                bitmap.recycle()
+            }
         } catch (e: IOException) {
             e.printStackTrace()
+            return bitmap
+        } catch (e: OutOfMemoryError) {
+            e.printStackTrace()
+            return bitmap
         }
         return rotatedBitmap
     }
@@ -75,7 +93,11 @@ class ImageUtil {
             0f, dstHeight               // Bottom-left
         )
 
-        return correctPerspective(bitmap, src, dst, dstWidth, dstHeight)
+        val croppedBitmap = correctPerspective(bitmap, src, dst, dstWidth, dstHeight)
+        if(bitmap != croppedBitmap) {
+            bitmap.recycle()
+        }
+        return croppedBitmap
     }
 
     fun correctPerspective(b: Bitmap, srcPoints: FloatArray?, dstPoints: FloatArray?, w: Float, h: Float): Bitmap {
