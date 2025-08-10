@@ -13,7 +13,6 @@ import kotlin.math.sqrt
 
 
 class ImageUtil {
-
     fun getImageFromFilePath(filePath: String): Bitmap? {
         val bitmap = BitmapFactory.decodeFile(filePath) ?: return null
         val rotatedBitmap: Bitmap
@@ -56,6 +55,7 @@ class ImageUtil {
         }
         return rotatedBitmap
     }
+
 
     fun crop(photoFilePath: String, corners: Quad): Bitmap? {
         val bitmap = getImageFromFilePath(photoFilePath) ?: return null
