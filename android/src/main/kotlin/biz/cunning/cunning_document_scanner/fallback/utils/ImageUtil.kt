@@ -1,14 +1,13 @@
 package biz.cunning.cunning_document_scanner.fallback.utils
 
-import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
-import android.media.ExifInterface
-import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import biz.cunning.cunning_document_scanner.fallback.models.Quad
+import java.io.IOException
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -16,30 +15,29 @@ import kotlin.math.sqrt
 class ImageUtil {
 
     fun getImageFromFilePath(filePath: String): Bitmap? {
-        val rotation = getRotationDegrees(filePath)
         val bitmap = BitmapFactory.decodeFile(filePath) ?: return null
-
-        return if (rotation != 0) {
-            val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        } else {
-            bitmap
+        var rotatedBitmap: Bitmap? = null
+        try {
+            val exif = ExifInterface(filePath)
+            val orientation = exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_UNDEFINED
+            )
+            val matrix = Matrix()
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            }
+            rotatedBitmap = Bitmap.createBitmap(
+                bitmap, 0, 0, bitmap.width,
+                bitmap.height, matrix, true
+            )
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
+        return rotatedBitmap
     }
-
-    private fun getRotationDegrees(filePath: String): Int {
-        val exif = ExifInterface(filePath)
-        return when (exif.getAttributeInt(
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_NORMAL
-        )) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> 90
-            ExifInterface.ORIENTATION_ROTATE_180 -> 180
-            ExifInterface.ORIENTATION_ROTATE_270 -> 270
-            else -> 0
-        }
-    }
-
 
     fun crop(photoFilePath: String, corners: Quad): Bitmap? {
         val bitmap = getImageFromFilePath(photoFilePath) ?: return null
