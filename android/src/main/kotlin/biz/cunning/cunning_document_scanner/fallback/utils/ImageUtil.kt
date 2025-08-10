@@ -20,7 +20,7 @@ class ImageUtil {
             val exif = ExifInterface(filePath)
             val orientation = exif.getAttributeInt(
                 ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_ROTATE_180
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
             )
             val matrix = Matrix()
             when (orientation) {
